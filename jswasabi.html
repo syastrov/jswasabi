@@ -1,0 +1,153 @@
+<html>
+<head>
+    <title>JS Sandbox</title>
+<script src="js.js/libjs.O2.js"></script>
+<script src="js.js/jsjs-wrapper.js"></script>
+<script src="lib/jquery.1.7.2.min.js"></script>
+<style type="text/css">
+        #editor { 
+            height: 60%;
+        }
+        #buttons {
+            height: 1.6em;
+        }
+        #console {
+            height: 25%;
+        }
+        #console_log {
+            font-family: monospace;
+            white-space: pre;
+            overflow: auto;
+            height: 100%;
+        }
+        h3 {font-size: .8em;}
+</style>
+    
+<script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript">
+function reportMessage(s) {
+    console.log(s);
+    console_log = $('#console_log');
+    console_log.append(s + "<br/>");
+    console_log.scrollTop(console_log[0].scrollHeight);
+}
+
+function assert(v) {
+    if (!v) {
+        throw "Assertion failed";
+    }
+}
+
+    JSJS.Types['JSVal'] = new function() {
+            this['toJSVal'] = function(jsval, val, cx) {
+                // jsval = val;
+                // var jsvalout = allocate(8, 'i32', ALLOC_NORMAL);
+                _memcpy(jsval, val, 8);
+                return;
+            };
+            this['type'] = 'JSVal';
+    };
+
+    var editor;
+
+    function init_editor() {
+        editor = ace.edit("editor");
+        editor.getSession().setUseWorker(false);
+        editor.setTheme("ace/theme/monokai");
+        editor.getSession().setMode("ace/mode/javascript");
+
+        $('#run').click(start_jsjs);
+    }
+
+    function start_jsjs(e) {
+        var src = editor.getValue();
+        var jsObjs = JSJS.Init();
+
+        function errorReporter(cx, message, report) {
+            reportMessage("js.js Script Error (line: " + getValue(report + 4, 'i32') + "): " + Pointer_stringify(message));
+        }
+        JSJS.SetErrorReporter(jsObjs.cx, errorReporter);
+    
+        //Define a global object called "nativeAdd" that calls nativeAdd function,
+        // taking two doubles as input, returning a double
+        function eval_func(s) {
+            // Log to the console
+            //reportMessage("<strong>eval</strong>(" + s + ")");
+            // Do the actual eval
+            var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, s);
+
+            reportMessage("<strong>eval</strong>(" + s + ") = " + JSJS.identifyConvertValue(jsObjs.cx, rval));
+
+            return rval; // return JSVal directly
+
+            // var d;
+            // if (rval) {
+            //     //Convert the JSVal to a double
+            //     d = JSJS.identifyConvertValue(jsObjs.cx, rval);
+            //     return d;
+            // } else { return; }
+        }
+        
+        var wrappedNativeFuncEval = JSJS.wrapFunction({
+            func: eval_func,
+            args: [JSJS.Types['charPtr']],
+            returns: JSJS.Types['JSVal']});
+        JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "eval", wrappedNativeFuncEval, 1, 0);
+        
+        function alert_func(s) {
+            reportMessage("<strong>alert</strong>: " + s);
+            alert(s);
+        }
+        var wrappedNativeFuncAlert = JSJS.wrapFunction({
+            func: alert_func,
+            args: [JSJS.Types['charPtr']]});
+        JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "alert", wrappedNativeFuncAlert, 1, 0);
+        
+        // reportMessage("Running script");
+
+        var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, src);
+        
+        var d;
+        if (rval) {
+            //Convert the JSVal to a double
+            d = JSJS.identifyConvertValue(jsObjs.cx, rval);
+            d = "Result = " + d;
+        } else {
+            d = "Can't get result because an error happened.";
+        }
+    
+        reportMessage(d);
+        
+        // This is how you do a proper shut down
+        JSJS.End(jsObjs);
+    }
+    
+    $(document).ready(init_editor);
+
+</script>
+  <body>
+    <div class="container">
+        <div id="buttons">
+            <button id="run">Run</button>
+        </div>
+        <div id="editor">eval("1+1"); // int
+var a = "a", b = "b";
+eval("a+b"); // string
+
+var o = {};
+
+// Printing the value of the eval doesn't print a pretty string for objects/functions
+// But the alert pretty prints it.
+alert(eval("o")); // object
+
+// Eval within a function scope doesn't work right: x is undefined
+o.x = function(x,y) {return eval("x+y");}
+alert(eval("o.x(a,b)")); // eval within eval</div>
+        <div id="console">
+            <h3>Console</h3>
+            <div id="console_log"></div>
+        </div>
+    </div>
+  </body>
+</html>
