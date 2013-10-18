@@ -1,0 +1,3 @@
+[submodule "jswasabi"]
+	path = jswasabi
+	url = https://github.com/syastrov/jswasabi.git
