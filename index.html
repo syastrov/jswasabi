@@ -27,6 +27,8 @@
 
 <script type="text/javascript">
 function reportMessage(s) {
+    var args = Array.prototype.slice.call(arguments, 0);
+    s = args.join(" ");
     console.log(s);
     console_log = $('#console_log');
     console_log.append(s + "<br/>");
@@ -49,6 +51,47 @@ function assert(v) {
             this['type'] = 'JSVal';
     };
 
+    JSJS.SetCallHook = function(rt, callHookFunc, closure) {
+        var funcPosition = FUNCTION_TABLE.push(callHookFunc) - 1;
+        return _JS_SetCallHook(rt, funcPosition, closure);
+    };
+
+    
+    /* Eval function in js.js's name-mangled SpiderMonkey.
+    Demangled: _EvalKernel(JSContext*, js::CallArgs const&, EvalType, js::StackFrame*, JSObject&) */
+    originalEval = __ZL10EvalKernelP9JSContextRKN2js8CallArgsE8EvalTypePNS1_10StackFrameER8JSObject;
+    __ZL10EvalKernelP9JSContextRKN2js8CallArgsE8EvalTypePNS1_10StackFrameER8JSObject = function ($cx, $call, $evalType, $caller, $scopeobj) {
+        // reportMessage('eval', $cx, $call, $evalType, $caller, $scopeobj);
+
+        var callerFunc;
+
+        var fn = _JS_GetFrameFunction($cx, $caller);
+        if (fn) {        
+            // Try to get the name of non-anonymous functions
+            var name = _JS_GetFunctionId(fn);
+            if (name) {
+                var idStr = _JSID_TO_STRING(name);
+                idStr = _JS_GetStringCharsZ($cx, idStr); 
+                var idStrReal = JSJS.parseUTF16(idStr);
+                callerFunc = idStrReal;
+            }
+        }
+
+        var result = originalEval($cx, $call, $evalType, $caller, $scopeobj);
+
+        // Get the argument to eval
+        var argv = __ZNK2js8CallArgs4argvEv($call);
+        var parameter = JSJS.identifyConvertValue($cx, argv);
+
+        // TODO: Get and report the return value
+        // TODO: Report the line number if possible
+
+        reportMessage('eval(' + parameter + '), called by', callerFunc);
+
+        return result;
+    }; 
+
+
     var editor;
 
     function init_editor() {
@@ -64,10 +107,36 @@ function assert(v) {
         var src = editor.getValue();
         var jsObjs = JSJS.Init();
 
+        function callHookFunc(cx, fp, before, ok, closure) {
+            console.log('Function called', before, ok, closure);
+            var fn = _JS_GetFrameFunction(cx, fp);
+            if (!fn) {
+                return closure;
+            }
+
+            // Try to get the name of non-anonymous functions
+            var name = _JS_GetFunctionId(fn);
+            if (name) {
+                var idStr = _JSID_TO_STRING(name);
+                idStr = _JS_GetStringCharsZ(cx, idStr); 
+                var idStrReal = JSJS.parseUTF16(idStr);
+                console.log("Func name", idStrReal);
+            }
+
+            // console.log("Call Hook!", getValue(fp + 4, 'i32'));
+            return closure;
+        }
+
+        _JS_SetDebugMode(jsObjs.cx, true);
+
+        // var res = JSJS.SetCallHook(jsObjs.rt, callHookFunc, this);
+        // console.log('Call hook', res ? 'set' : 'not set');
+
         function errorReporter(cx, message, report) {
             reportMessage("js.js Script Error (line: " + getValue(report + 4, 'i32') + "): " + Pointer_stringify(message));
         }
         JSJS.SetErrorReporter(jsObjs.cx, errorReporter);
+
     
         function eval_func(s) {
             // Get the local context
@@ -76,6 +145,14 @@ function assert(v) {
 
             // Do the actual eval
             var rval = JSJS.EvaluateScript(jsObjs.cx, thisObj, s);
+
+            // Convert return value to string to pretty-print it
+            // (this can call the value's toString() function in javascript).
+            var rvalAsString = _JS_ValueToString(jsObjs.cx, rval);
+            // Convert JSVal to a javascript string
+            var resultStr = JSJS.identifyConvertValue(jsObjs.cx, rvalAsString);
+            reportMessage("<strong>eval</strong>(" + s + ") = " + resultStr);
+            
 
             return rval; // return JSVal directly
 
@@ -91,7 +168,7 @@ function assert(v) {
             func: eval_func,
             args: [JSJS.Types['charPtr']],
             returns: JSJS.Types['JSVal']});
-        JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "eval", wrappedNativeFuncEval, 1, 0);
+        // JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "eval", wrappedNativeFuncEval, 1, 0);
         
         function alert_func(s) {
             reportMessage("<strong>alert</strong>: " + s);
@@ -129,21 +206,9 @@ function assert(v) {
         <div id="buttons">
             <button id="run">Run</button>
         </div>
-        <div id="editor">
-function test() {var x = 1, y = 1; eval("x+y");}
+        <div id="editor">function test(x, y) { return eval("x + y"); }
 
-test();
-
-eval("1+1"); // int
-var a = "a", b = "b";
-eval("a+b"); // string
-
-var o = {};
-
-// Printing the value of the eval doesn't print a pretty string for objects/functions
-// But the alert pretty prints it.
-alert(eval("o")); // object
-
+alert(test(1, 1));
 </div>
         <div id="console">
             <h3>Console</h3>
