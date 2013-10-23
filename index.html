@@ -41,6 +41,10 @@ function reportMessage(s) {
     console_log.scrollTop(console_log[0].scrollHeight);
 }
 
+function clearConsole() {
+    $('#console_log').html('');
+}
+
 function assert(v) {
     if (!v) {
         throw "Assertion failed";
@@ -60,7 +64,10 @@ function assert(v) {
     }
 
     function start_jsjs(e) {
+        clearConsole();
+
         var src = editor.getValue();
+
         var jsObjs = JSJS.Init();
 
         JSWasabi.SetEvalCallback(function (evalArgs, callerFunc) {
@@ -93,10 +100,15 @@ function assert(v) {
         JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "alert", wrappedNativeFuncAlert, 1, 0);
         
         var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, src);
-        
+
+        // Evaluate code for getting all globals
+        var getGlobalsSrc = "var _$$$_globals = {}; for (v in this) { if (v != '_$$$_globals') { _$$$_globals[v] = this[v]; } } JSON.stringify(_$$$_globals);";
+        var globals = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, getGlobalsSrc);
+                
+
         var d;
         if (rval) {
-            //Convert the JSVal to a double
+            // Convert the JSVal to a native javascript type
             d = JSJS.identifyConvertValue(jsObjs.cx, rval);
             d = "Result = " + d;
         } else {
@@ -104,6 +116,8 @@ function assert(v) {
         }
     
         reportMessage(d);
+
+        reportMessage("Globals:", JSJS.identifyConvertValue(jsObjs.cx, globals));
         
         // This is how you do a proper shut down
         JSJS.End(jsObjs);
@@ -117,9 +131,10 @@ function assert(v) {
         <div id="buttons">
             <button id="run">Run</button>
         </div>
-        <div id="editor">function test(x, y) { return eval("x + y"); }
+        <div id="editor">var global = 1; var global2 = 'a';
+function test(x, y) { global = 2; return eval("eval('x + y')"); }
 
-alert(test(1, 1));
+test(1, 1);
 </div>
         <div id="console">
             <h3>Console</h3>
