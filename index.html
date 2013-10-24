@@ -82,7 +82,9 @@ function assert(v) {
 
 
         function errorReporter(cx, message, report) {
-            reportMessage("js.js Script Error (line: " + getValue(report + 4, 'i32') + "): " + Pointer_stringify(message));
+            var lineNo = getValue(report + 4, 'i32') + 1;
+            reportMessage("<a href='javascript: editor.gotoLine(" + lineNo + ", 0, true);'>"
+                + "js.js Script Error (line: " + lineNo + "): " + Pointer_stringify(message) + '</a>');
         }
         JSJS.SetErrorReporter(jsObjs.cx, errorReporter);
 
