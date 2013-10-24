@@ -40,7 +40,8 @@ var JSWasabi = {
         var res = JSJS.SetCallHook(rt, callHookFunc, this);
         // console.log('Call hook', res ? 'set' : 'not set');
     }
-}
+};
+
 window['JSWasabi'] = JSWasabi;
 
 

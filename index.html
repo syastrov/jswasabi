@@ -15,9 +15,7 @@
             height: 1.6em;
         }
         
-        #
-
-        console {
+        #console {
             height: 25%;
         }
         #console_log {
@@ -89,7 +87,8 @@ function assert(v) {
         JSJS.SetErrorReporter(jsObjs.cx, errorReporter);
 
     
-        
+        /*
+        // Override built-in alert function
         function alert_func(s) {
             reportMessage("<strong>alert</strong>: " + s);
             alert(s);
@@ -98,7 +97,8 @@ function assert(v) {
             func: alert_func,
             args: [JSJS.Types['charPtr']]});
         JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "alert", wrappedNativeFuncAlert, 1, 0);
-        
+        */
+
         var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, src);
 
         // Evaluate code for getting all globals
