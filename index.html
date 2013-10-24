@@ -54,6 +54,7 @@ function assert(v) {
 
     function init_editor() {
         editor = ace.edit("editor");
+        ace.config.set("workerPath", "ace");
         // editor.getSession().setUseWorker(false);
         editor.setTheme("ace/theme/monokai");
         editor.getSession().setMode("ace/mode/javascript");
