@@ -1,30 +1,43 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>JS Sandbox</title>
+    <title>JSWasabi</title>
 <script src="js.js/libjs.O2.js"></script>
 <script src="js.js/jsjs-wrapper.js"></script>
 <script src="lib/jquery.1.7.2.min.js"></script>
 
 <script src="jswasabi.js"></script>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/bootstrap.min.css">
+
 <style type="text/css">
         #editor { 
-            height: 60%;
-        }
-        #buttons {
-            height: 1.6em;
+            position: relative;
+            height: 500px;
         }
         
-        #console {
-            height: 25%;
-        }
         #console_log {
-            font-family: monospace;
-            white-space: pre;
             overflow: auto;
-            height: 100%;
         }
-        h3 {font-size: .8em;}
+
+        body {
+            background-color: #849137;
+        }
+
+        .btn-default {
+            background-color: #4a511f;
+            color: #fff;
+        } 
+
+        .btn-default:hover {
+            background-color: #5b6426;
+            color: #fff;
+        } 
+
+        .panel-body {
+            background-color: #ccc;
+        }
 </style>
     
 <script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -55,8 +68,9 @@ function assert(v) {
     function init_editor() {
         editor = ace.edit("editor");
         ace.config.set("workerPath", "ace");
-        // editor.getSession().setUseWorker(false);
+        editor.getSession().setUseWorker(false);
         editor.setTheme("ace/theme/monokai");
+        document.getElementById('editor').style.fontSize='14px';
         editor.getSession().setMode("ace/mode/javascript");
 
         $('#run').click(start_jsjs);
@@ -105,7 +119,7 @@ function assert(v) {
         var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, src);
 
         // Evaluate code for getting all globals
-        var getGlobalsSrc = "var _$$$_globals = {}; for (v in this) { if (v != '_$$$_globals') { _$$$_globals[v] = this[v]; } } JSON.stringify(_$$$_globals);";
+        var getGlobalsSrc = "var _$$$_globals = {}; for (v in this) { if (v != '_$$$_globals' && this.hasOwnProperty(v)) { _$$$_globals[v] = this[v]; } } JSON.stringify(_$$$_globals);";
         var globals = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, getGlobalsSrc);
                 
 
@@ -131,18 +145,25 @@ function assert(v) {
 </script>
   <body>
     <div class="container">
-        <div id="buttons">
-            <button id="run">Run</button>
-        </div>
-        <div id="editor">var global = 1; var global2 = 'a';
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h1 class="panel-title">JSWasabi Editor</h1>
+            </div>
+            <div class="panel-heading">
+               <button id="run" class="btn btn-default btn-lg">Run</button>
+            </div>
+            <div class="panel-body">
+                <div id="editor">var global = 1; var global2 = 'a';
 function test(x, y) { global = 2; return eval("eval('x + y')"); }
 
-test(1, 1);
-</div>
-        <div id="console">
-            <h3>Console</h3>
-            <div id="console_log"></div>
+test(1, 1);</div>
+            </div>
+            <div id="console" class="panel-footer">
+                <h3 class="panel-title">Console</h3>
+                <pre id="console_log"></pre>
+           </div>
         </div>
+        <div class="text-center well"><a href="https://github.com/syastrov/jswasabi/">JSWasabi</a>. A project by <a href="https://github.com/syastrov/">Seth Yastrov</a>. Using Jeff Terrace's <a href="https://github.com/jterrace/js.js/">js.js</a>.</p>
     </div>
   </body>
 </html>
