@@ -64,16 +64,17 @@ __ZL10EvalKernelP9JSContextRKN2js8CallArgsE8EvalTypePNS1_10StackFrameER8JSObject
         }
     }
 
-    var result = _originalEval($cx, $call, $evalType, $caller, $scopeobj);
-
-    // Get the argument to eval
+    // Get the arguments to eval
     var argv = __ZNK2js8CallArgs4argvEv($call);
     var evalArgs = JSJS.identifyConvertValue($cx, argv);
 
-    // TODO: Get and report the return value
     // TODO: Report the line number if possible
 
     JSWasabi._evalCallback(evalArgs, callerFunc);
+
+    var result = _originalEval($cx, $call, $evalType, $caller, $scopeobj);
+
+    // TODO: Get and report the return value
 
     return result;
 };
