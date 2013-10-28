@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<<<<<<< HEAD
 <html>
 
   <head>
@@ -48,3 +49,293 @@
 
   </body>
 </html>
+=======
+<html lang="en">
+<head>
+    <title>JSWasabi</title>
+<script src="js.js/libjs.O2.js"></script>
+<script src="js.js/jsjs-wrapper.js"></script>
+<script src="lib/jquery.1.7.2.min.js"></script>
+
+<script src="jswasabi.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/bootstrap.min.css">
+
+<style type="text/css">
+        #editor { 
+            position: relative;
+            height: 600px;
+            border-radius: 5px;
+        }
+        
+        #console_log {
+            overflow: auto;
+        }
+
+        body {
+            background-color: #849137;
+        }
+
+        code {
+            white-space: pre-wrap;
+        }
+
+        .btn-default {
+            background-color: #4a511f;
+            color: #fff;
+        } 
+
+        .btn-default:hover {
+            background-color: #5b6426;
+            color: #fff;
+        } 
+
+        .panel-body {
+            background-color: #cfddcc;
+        }
+</style>
+    
+<script src="ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script type="text/javascript">
+    function reportMessage(s) {
+        var args = Array.prototype.slice.call(arguments, 0);
+        s = args.join(" ");
+        console.log(s);
+        console_log = $('#console_log');
+        console_log.append(s + "<br/>");
+        console_log.scrollTop(console_log[0].scrollHeight);
+    }
+
+    function clearConsole() {
+        $('#console_log').html('');
+    }
+
+    function generateObjectTable(parent, obj) {
+        for (var variable in obj) {
+            var row = $('<tr>');
+
+            var value = obj[variable];
+            var valueAsString = JSON.stringify(value);
+
+            var varTd = $('<td>').html(variable);
+
+            row.append(varTd);
+            row.append($('<td>').append($('<code>').html(valueAsString)));
+
+            parent.append(row);
+        }
+    }
+
+    function displayGlobals(globals) {
+        console.log(globals);
+
+        var globalsTable = $('#globals tbody');
+
+        generateObjectTable(globalsTable, globals);
+    }
+
+    function clearGlobals() {
+        $('#globals tbody').html('');
+    }
+
+    var callCounter = {};
+
+    function addToCallLog(type, message) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        message = args.join(" ");
+        console.log(message);
+
+        call_log = $('#call_log tbody');
+
+        // Update call counter for this type
+        if (!callCounter[type]) {
+            callCounter[type] = 0;
+        }
+
+        callCounter[type] += 1;
+
+        // Generate the row
+        var row = $('<tr>');
+
+        var typeSpan = $('<span>').html(type); //+ '[' + callCounter[type] + ']');
+
+        var labelClass = '';
+        if (type == 'eval') {
+            labelClass = 'label-danger';
+        } else {
+            labelClass = 'label-default';
+        }
+
+        typeSpan.addClass('label');
+        typeSpan.addClass(labelClass);
+
+
+        var callCountSpan = $('<span class="badge">').html(callCounter[type]);
+        var tdCallType = $('<td>').append(typeSpan).append($('<span>').html('&nbsp;')).append(callCountSpan);
+
+        row.append(tdCallType);
+        row.append($('<td>').html(message));
+
+        call_log.append(row);
+    }
+
+    function clearCallLog() {
+        $('#call_log tbody').html('');
+        callCounter = {};
+    }
+
+    function clearAllDisplays(){
+        clearConsole();
+        clearGlobals();
+        clearCallLog();
+    }
+
+
+    var editor;
+
+    function init_editor() {
+        editor = ace.edit("editor");
+        ace.config.set("workerPath", "ace");
+        editor.getSession().setUseWorker(false);
+        editor.setTheme("ace/theme/monokai");
+        document.getElementById('editor').style.fontSize='12px';
+        editor.getSession().setMode("ace/mode/javascript");
+
+        editor.commands.addCommand({
+            name: 'run',
+            bindKey: {win: 'Ctrl-R',  mac: 'Command-R'},
+            exec: function(editor) {
+                start_jsjs();
+            },
+            readOnly: false // false if this command should not apply in readOnly mode
+        });
+
+        $('#run').click(start_jsjs);
+    }
+
+    function start_jsjs() {
+        clearAllDisplays();
+
+        var src = editor.getValue();
+
+        var jsObjs = JSJS.Init();
+
+        JSWasabi.SetEvalCallback(function (evalArgs, callerFunc) {
+          if (!callerFunc) {
+            callerFunc = '[global]';
+          }
+
+          addToCallLog("eval", '<code>' + evalArgs + '</code>' + " from <strong>" + callerFunc + "</strong>");
+        });
+
+        JSWasabi.SetCallHook(jsObjs.cx, jsObjs.rt, function (funcName) {
+          addToCallLog("call", '<code>' + funcName + '</code> called');
+        });
+
+
+        function errorReporter(cx, message, report) {
+            var lineNo = getValue(report + 4, 'i32') + 1;
+            reportMessage("<a href='javascript: editor.gotoLine(" + lineNo + ", 0, true); editor.focus();'>"
+                + "js.js Script Error (line: " + lineNo + "): " + Pointer_stringify(message) + '</a>');
+        }
+        JSJS.SetErrorReporter(jsObjs.cx, errorReporter);
+
+    
+        /*
+        // Override built-in alert function
+        function alert_func(s) {
+            reportMessage("<strong>alert</strong>: " + s);
+            alert(s);
+        }
+        var wrappedNativeFuncAlert = JSJS.wrapFunction({
+            func: alert_func,
+            args: [JSJS.Types['charPtr']]});
+        JSJS.DefineFunction(jsObjs.cx, jsObjs.glob, "alert", wrappedNativeFuncAlert, 1, 0);
+        */
+
+        var rval = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, src);
+
+        // Evaluate code for getting all globals
+        var getGlobalsSrc = "var _$$$_globals = {}; for (v in this) { if (v != '_$$$_globals' && this.hasOwnProperty(v)) { _$$$_globals[v] = this[v]; } } JSON.stringify(_$$$_globals);";
+        var globals = JSJS.EvaluateScript(jsObjs.cx, jsObjs.glob, getGlobalsSrc);
+        globals = JSON.parse(JSJS.identifyConvertValue(jsObjs.cx, globals));
+
+        var d;
+        if (rval) {
+            // Convert the JSVal to a native javascript type
+            d = JSJS.identifyConvertValue(jsObjs.cx, rval);
+            d = "Result = " + d;
+        } else {
+            d = "Can't get result because an error happened.";
+        }
+    
+        reportMessage(d);
+
+        displayGlobals(globals);
+        
+        // This is how you do a proper shut down
+        JSJS.End(jsObjs);
+    }
+    
+    $(document).ready(init_editor);
+
+</script>
+  <body>
+    <div class="container">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h1 class="panel-title">JSWasabi Editor</h1>
+            </div>
+            <div class="panel-body"> 
+                <div class="row">
+                    <div class="col-md-8">
+                        <div id="editor">var globalNum = 1;
+var globalStr = 'a';
+var globalObj = {'name': 'Joe',
+    'addr': {
+        'street':'123 Main St',
+        'country':'usa'
+    }
+};
+
+function test(x, y) { return eval("eval('x + y')"); }
+
+test(1, 1);</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="well">
+                            <h3 class="panel-title">Call Log</h3>
+                            <table id="call_log" class="table">
+                                <!-- <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead> -->
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="well">
+                            <h3 class="panel-title">Globals</h3>
+                            <table id="globals" class="table"><tbody></tbody></table>
+                        </div>
+                        <div id="console" class="well">
+                            <h3 class="panel-title">Console</h3>
+                            <pre id="console_log"></pre>
+                       </div>
+                   </div>
+               </div>
+            </div>
+            <div class="panel-footer">
+               <button id="run" class="btn btn-default btn-lg" title="Ctrl+R">Run</button>
+            </div>
+        </div>
+        <div class="text-center well">
+            <a href="https://github.com/syastrov/jswasabi/">JSWasabi</a>. A project by <a href="https://github.com/syastrov/">Seth Yastrov</a>. Built using Jeff Terrace's <a href="https://github.com/jterrace/js.js/">js.js</a>.</p>
+        </div>
+    </div>
+  </body>
+</html>
+>>>>>>> ac5ae17eb766ced8bbca8bcb12e49bd310b7dba3
