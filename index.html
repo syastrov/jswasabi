@@ -152,10 +152,19 @@
         document.getElementById('editor').style.fontSize='12px';
         editor.getSession().setMode("ace/mode/javascript");
 
+        editor.commands.addCommand({
+            name: 'run',
+            bindKey: {win: 'Ctrl-R',  mac: 'Command-R'},
+            exec: function(editor) {
+                start_jsjs();
+            },
+            readOnly: false // false if this command should not apply in readOnly mode
+        });
+
         $('#run').click(start_jsjs);
     }
 
-    function start_jsjs(e) {
+    function start_jsjs() {
         clearAllDisplays();
 
         var src = editor.getValue();
@@ -228,9 +237,6 @@
             <div class="panel-heading">
                 <h1 class="panel-title">JSWasabi Editor</h1>
             </div>
-            <div class="panel-heading">
-               <button id="run" class="btn btn-default btn-lg">Run</button>
-            </div>
             <div class="panel-body"> 
                 <div class="row">
                     <div class="col-md-8">
@@ -269,9 +275,15 @@ test(1, 1);</div>
                             <pre id="console_log"></pre>
                        </div>
                    </div>
+               </div>
+            </div>
+            <div class="panel-footer">
+               <button id="run" class="btn btn-default btn-lg" title="Ctrl+R">Run</button>
             </div>
         </div>
-        <div class="text-center well"><a href="https://github.com/syastrov/jswasabi/">JSWasabi</a>. A project by <a href="https://github.com/syastrov/">Seth Yastrov</a>. Built using Jeff Terrace's <a href="https://github.com/jterrace/js.js/">js.js</a>.</p>
+        <div class="text-center well">
+            <a href="https://github.com/syastrov/jswasabi/">JSWasabi</a>. A project by <a href="https://github.com/syastrov/">Seth Yastrov</a>. Built using Jeff Terrace's <a href="https://github.com/jterrace/js.js/">js.js</a>.</p>
+        </div>
     </div>
   </body>
 </html>
