@@ -5,7 +5,7 @@ Built using Jeff Terrace's [js.js](https://github.com/jterrace/js.js/).
 
 Demo
 =======
-A demo is available at http://syastrov.github.io/jswasabi/jswasabi/
+A demo is available at http://syastrov.github.io/jswasabi/
 
 Features
 ======
